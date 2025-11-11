@@ -6,57 +6,117 @@
     <style>
         body {
             font-family: Arial, sans-serif;
-            margin: 50px auto;
-            max-width: 400px;
-            text-align: center;
-            background-color: #f8f9fa;
-            padding: 30px;
-            border-radius: 12px;
-            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+            background-color: #eef2f3;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            height: 100vh;
+            padding-top: 50px;
         }
-        input[type="number"] {
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+            width: 420px;
+        }
+        h2 {
+            color: #333;
+            text-align: center;
+        }
+        input {
+            width: 90%;
             padding: 10px;
-            width: 80%;
-            margin-bottom: 15px;
-            border-radius: 8px;
+            margin: 10px 0;
+            border-radius: 6px;
             border: 1px solid #ccc;
         }
         button {
-            padding: 10px 20px;
-            border: none;
-            background-color: #007bff;
+            background-color: #007BFF;
             color: white;
-            border-radius: 8px;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 6px;
             cursor: pointer;
         }
         button:hover {
             background-color: #0056b3;
         }
+        .clear-btn {
+            background-color: #dc3545;
+            margin-top: 10px;
+        }
+        .clear-btn:hover {
+            background-color: #b02a37;
+        }
         .result {
             margin-top: 20px;
             font-size: 18px;
-        }
-        .category {
-            font-weight: bold;
             color: #333;
+            text-align: center;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 25px;
+        }
+        th, td {
+            padding: 8px;
+            border-bottom: 1px solid #ddd;
+            text-align: center;
+        }
+        th {
+            background-color: #007BFF;
+            color: white;
         }
     </style>
 </head>
 <body>
-    <h2>BMI Calculator</h2>
-    <form method="POST">
-        <input type="number" name="weight" step="0.1" placeholder="Weight (kg)" required><br>
-        <input type="number" name="height" step="0.1" placeholder="Height (cm)" required><br>
-        <button type="submit">Calculate</button>
-    </form>
+    <div class="container">
+        <h2>BMI Calculator</h2>
 
-    {% if bmi %}
+        <!-- BMI Calculation Form -->
+        <form method="POST">
+            <input type="number" name="weight" step="0.1" placeholder="Enter weight (kg)" required><br>
+            <input type="number" name="height" step="0.1" placeholder="Enter height (cm)" required><br>
+            <button type="submit" name="calculate">Calculate BMI</button>
+        </form>
+
+        {% if bmi %}
         <div class="result">
-            <p>Your BMI is: <strong>{{ bmi }}</strong></p>
-            {% if category %}
-                <p class="category">Category: {{ category }}</p>
-            {% endif %}
+            <p><strong>Your BMI:</strong> {{ bmi }}</p>
+            <p>Category: <strong>{{ category }}</strong></p>
         </div>
-    {% endif %}
+        {% elif message %}
+        <div class="result">
+            <p>{{ message }}</p>
+        </div>
+        {% endif %}
+
+        {% if history %}
+        <h3 style="text-align:center; margin-top:30px;">Recent Calculations</h3>
+        <form action="{{ url_for('clear_history') }}" method="POST" style="text-align:center;">
+            <button class="clear-btn" type="submit">Clear History</button>
+        </form>
+        <table>
+            <tr>
+                <th>Weight (kg)</th>
+                <th>Height (cm)</th>
+                <th>BMI</th>
+                <th>Category</th>
+                <th>Time</th>
+            </tr>
+            {% for entry in history %}
+            <tr>
+                <td>{{ entry[0] }}</td>
+                <td>{{ entry[1]|round(1) }}</td>
+                <td>{{ entry[2] }}</td>
+                <td>{{ entry[3] }}</td>
+                <td>{{ entry[4] }}</td>
+            </tr>
+            {% endfor %}
+        </table>
+        {% endif %}
+    </div>
 </body>
 </html>
