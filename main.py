@@ -1,8 +1,10 @@
-from flask import Flask, render_template, request, redirect, url_for
+from flask import Flask, render_template, request, redirect, url_for, session
 import sqlite3
 from datetime import datetime
+import uuid
 
 app = Flask(__name__)
+app.secret_key = "supersecretkey"  # needed for sessions
 
 # --- Database setup ---
 def init_db():
@@ -10,6 +12,7 @@ def init_db():
     c = conn.cursor()
     c.execute('''CREATE TABLE IF NOT EXISTS bmi_history (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    user_id TEXT,
                     weight REAL,
                     height REAL,
                     bmi REAL,
@@ -21,9 +24,17 @@ def init_db():
 
 init_db()
 
+# --- Helper function ---
+def get_user_id():
+    """Assign a unique ID to each new visitor."""
+    if 'user_id' not in session:
+        session['user_id'] = str(uuid.uuid4())
+    return session['user_id']
+
 # --- Routes ---
 @app.route('/', methods=['GET', 'POST'])
 def index():
+    user_id = get_user_id()
     bmi = None
     category = None
     message = None
@@ -50,18 +61,18 @@ def index():
                 # Save to database
                 conn = sqlite3.connect('bmi.db')
                 c = conn.cursor()
-                c.execute('INSERT INTO bmi_history (weight, height, bmi, category, created_at) VALUES (?, ?, ?, ?, ?)',
-                          (weight, height * 100, bmi, category, datetime.now().strftime("%Y-%m-%d %H:%M:%S")))
+                c.execute('INSERT INTO bmi_history (user_id, weight, height, bmi, category, created_at) VALUES (?, ?, ?, ?, ?, ?)',
+                          (user_id, weight, height * 100, bmi, category, datetime.now().strftime("%Y-%m-%d %H:%M:%S")))
                 conn.commit()
                 conn.close()
 
         except ValueError:
             message = "Please enter valid numeric values."
 
-    # Fetch history
+    # Fetch only this user's history
     conn = sqlite3.connect('bmi.db')
     c = conn.cursor()
-    c.execute('SELECT weight, height, bmi, category, created_at FROM bmi_history ORDER BY id DESC LIMIT 10')
+    c.execute('SELECT weight, height, bmi, category, created_at FROM bmi_history WHERE user_id = ? ORDER BY id DESC LIMIT 10', (user_id,))
     history = c.fetchall()
     conn.close()
 
@@ -70,10 +81,11 @@ def index():
 
 @app.route('/clear', methods=['POST'])
 def clear_history():
-    """Delete all records from the database."""
+    """Delete this user's records from the database."""
+    user_id = get_user_id()
     conn = sqlite3.connect('bmi.db')
     c = conn.cursor()
-    c.execute('DELETE FROM bmi_history')
+    c.execute('DELETE FROM bmi_history WHERE user_id = ?', (user_id,))
     conn.commit()
     conn.close()
     return redirect(url_for('index'))
